@@ -11,6 +11,8 @@ type MovieStorage interface {
 	GetAll() ([]models.Movie, error)
 	GetByID(id int) (*models.Movie, error)
 	Create(movie *models.Movie) error
+	Update(movie *models.Movie) error
+	Delete(id int) error
 	Search(query string) ([]models.Movie, error)
 }
 
@@ -22,4 +24,7 @@ type AccountStorage interface {
 	CreateResetToken(userID int, token string, expiresAt time.Time) error
 	GetResetToken(token string) (*models.PasswordResetToken, error)
 	DeleteResetToken(token string) error
+	GetAll() ([]models.User, error)
+	UpdateRole(userID int, role string) error
+	Delete(userID int) error
 }

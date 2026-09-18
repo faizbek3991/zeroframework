@@ -23,6 +23,9 @@ export const API = {
       throw new Error(errorData.error || `HTTP error ${response.status}`);
     }
 
+    if (response.status === 204) {
+      return null;
+    }
     return response.json();
   },
 
@@ -39,6 +42,19 @@ export const API = {
     return this.request("/movies", {
       method: "POST",
       body: JSON.stringify(movie)
+    });
+  },
+
+  updateMovie(id, movie) {
+    return this.request(`/movies/${id}`, {
+      method: "PUT",
+      body: JSON.stringify(movie)
+    });
+  },
+
+  deleteMovie(id) {
+    return this.request(`/movies/${id}`, {
+      method: "DELETE"
     });
   },
 
@@ -67,6 +83,23 @@ export const API = {
     return this.request("/reset-password", {
       method: "POST",
       body: JSON.stringify({ token, password })
+    });
+  },
+
+  getUsers() {
+    return this.request("/admin/users");
+  },
+
+  updateUserRole(id, role) {
+    return this.request(`/admin/users/${id}/role`, {
+      method: "PATCH",
+      body: JSON.stringify({ role })
+    });
+  },
+
+  deleteUser(id) {
+    return this.request(`/admin/users/${id}`, {
+      method: "DELETE"
     });
   }
 };

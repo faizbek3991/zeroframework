@@ -7,5 +7,6 @@ type User struct {
 	Name         string    `json:"name" db:"name"`
 	Email        string    `json:"email" db:"email"`
 	PasswordHash string    `json:"-" db:"password_hash"` // Never expose password hash in JSON output
+	Role         string    `json:"role" db:"role"`
 	CreatedAt    time.Time `json:"created_at" db:"created_at"`
 }

@@ -79,7 +79,7 @@ func (h *AccountHandler) Register(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	jwtToken, err := token.GenerateJWT(user.ID, user.Email)
+	jwtToken, err := token.GenerateJWT(user.ID, user.Email, user.Role)
 	if err != nil {
 		writeError(w, http.StatusInternalServerError, "Token generation error")
 		return
@@ -107,7 +107,7 @@ func (h *AccountHandler) Login(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	jwtToken, err := token.GenerateJWT(user.ID, user.Email)
+	jwtToken, err := token.GenerateJWT(user.ID, user.Email, user.Role)
 	if err != nil {
 		writeError(w, http.StatusInternalServerError, "Token generation error")
 		return

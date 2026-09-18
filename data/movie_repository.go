@@ -2,8 +2,12 @@ package data
 
 import (
 	"database/sql"
+	"errors"
+
 	"fullstack-go-vanilla/models"
 )
+
+var ErrNotFound = errors.New("not found")
 
 type MovieRepository struct {
 	DB *sql.DB
@@ -84,6 +88,43 @@ func (r *MovieRepository) Create(movie *models.Movie) error {
 		movie.Rating,
 		movie.PosterURL,
 	).Scan(&movie.ID, &movie.CreatedAt)
+}
+
+func (r *MovieRepository) Update(movie *models.Movie) error {
+	query := `
+		UPDATE movies
+		SET title = $1, description = $2, release_year = $3, rating = $4, poster_url = $5
+		WHERE id = $6
+		RETURNING created_at
+	`
+	err := r.DB.QueryRow(
+		query,
+		movie.Title,
+		movie.Description,
+		movie.ReleaseYear,
+		movie.Rating,
+		movie.PosterURL,
+		movie.ID,
+	).Scan(&movie.CreatedAt)
+	if err == sql.ErrNoRows {
+		return ErrNotFound
+	}
+	return err
+}
+
+func (r *MovieRepository) Delete(id int) error {
+	result, err := r.DB.Exec(`DELETE FROM movies WHERE id = $1`, id)
+	if err != nil {
+		return err
+	}
+	affected, err := result.RowsAffected()
+	if err != nil {
+		return err
+	}
+	if affected == 0 {
+		return ErrNotFound
+	}
+	return nil
 }
 
 func (r *MovieRepository) Search(term string) ([]models.Movie, error) {

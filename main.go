@@ -55,10 +55,17 @@ func main() {
 	mux.HandleFunc("POST /api/forgot-password", accountHandler.ForgotPassword)
 	mux.HandleFunc("POST /api/reset-password", accountHandler.ResetPassword)
 
-	// Movie Endpoints (Public Read, Protected Write)
+	// Movie Endpoints (Public Read, Admin-Only Write)
 	mux.HandleFunc("GET /api/movies", movieHandler.HandleMovies)
 	mux.HandleFunc("GET /api/movies/{id}", movieHandler.HandleMovieByID)
-	mux.HandleFunc("POST /api/movies", handlers.RequireAuth(movieHandler.HandleMovies))
+	mux.HandleFunc("POST /api/movies", handlers.RequireAdmin(movieHandler.HandleMovies))
+	mux.HandleFunc("PUT /api/movies/{id}", handlers.RequireAdmin(movieHandler.HandleMovieByID))
+	mux.HandleFunc("DELETE /api/movies/{id}", handlers.RequireAdmin(movieHandler.HandleMovieByID))
+
+	// Admin Endpoints (Admin-Only)
+	mux.HandleFunc("GET /api/admin/users", handlers.RequireAdmin(accountHandler.ListUsers))
+	mux.HandleFunc("PATCH /api/admin/users/{id}/role", handlers.RequireAdmin(accountHandler.UpdateUserRole))
+	mux.HandleFunc("DELETE /api/admin/users/{id}", handlers.RequireAdmin(accountHandler.DeleteUser))
 
 	// SPA Static Fallback
 	fs := http.FileServer(http.Dir("./public"))

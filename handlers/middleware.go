@@ -39,3 +39,18 @@ func RequireAuth(next http.HandlerFunc) http.HandlerFunc {
 		next(w, r.WithContext(ctx))
 	}
 }
+
+// RequireAdmin protects routes by verifying the JWT bearer token and requiring
+// the "admin" role. The role is trusted from the JWT rather than re-checked
+// against the database, so a role change only takes effect on the user's next
+// login (their existing token keeps its old role until it expires).
+func RequireAdmin(next http.HandlerFunc) http.HandlerFunc {
+	return RequireAuth(func(w http.ResponseWriter, r *http.Request) {
+		claims, ok := r.Context().Value(UserContextKey).(*token.Claims)
+		if !ok || claims.Role != "admin" {
+			writeError(w, http.StatusForbidden, "Admin access required")
+			return
+		}
+		next(w, r)
+	})
+}

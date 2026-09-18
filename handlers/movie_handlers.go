@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"encoding/json"
+	"errors"
 	"net/http"
 	"strconv"
 
@@ -76,14 +77,8 @@ func (h *MovieHandler) HandleMovies(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-// HandleMovieByID handles GET /api/movies/{id}
+// HandleMovieByID handles GET, PUT, and DELETE on /api/movies/{id}
 func (h *MovieHandler) HandleMovieByID(w http.ResponseWriter, r *http.Request) {
-	if r.Method != http.MethodGet {
-		w.Header().Set("Allow", "GET")
-		writeError(w, http.StatusMethodNotAllowed, "Method not allowed")
-		return
-	}
-
 	// Uses Go 1.22+ standard library path matching pattern
 	idStr := r.PathValue("id")
 	id, err := strconv.Atoi(idStr)
@@ -92,15 +87,54 @@ func (h *MovieHandler) HandleMovieByID(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	movie, err := h.storage.GetByID(id)
-	if err != nil {
-		writeError(w, http.StatusInternalServerError, "Failed to retrieve movie")
-		return
-	}
-	if movie == nil {
-		writeError(w, http.StatusNotFound, "Movie not found")
-		return
-	}
+	switch r.Method {
+	case http.MethodGet:
+		movie, err := h.storage.GetByID(id)
+		if err != nil {
+			writeError(w, http.StatusInternalServerError, "Failed to retrieve movie")
+			return
+		}
+		if movie == nil {
+			writeError(w, http.StatusNotFound, "Movie not found")
+			return
+		}
+		writeJSON(w, http.StatusOK, movie)
 
-	writeJSON(w, http.StatusOK, movie)
+	case http.MethodPut:
+		var m models.Movie
+		if err := json.NewDecoder(r.Body).Decode(&m); err != nil {
+			writeError(w, http.StatusBadRequest, "Invalid request payload")
+			return
+		}
+		if m.Title == "" {
+			writeError(w, http.StatusBadRequest, "Title is required")
+			return
+		}
+		m.ID = id
+
+		if err := h.storage.Update(&m); err != nil {
+			if errors.Is(err, data.ErrNotFound) {
+				writeError(w, http.StatusNotFound, "Movie not found")
+				return
+			}
+			writeError(w, http.StatusInternalServerError, "Failed to update movie")
+			return
+		}
+		writeJSON(w, http.StatusOK, m)
+
+	case http.MethodDelete:
+		if err := h.storage.Delete(id); err != nil {
+			if errors.Is(err, data.ErrNotFound) {
+				writeError(w, http.StatusNotFound, "Movie not found")
+				return
+			}
+			writeError(w, http.StatusInternalServerError, "Failed to delete movie")
+			return
+		}
+		w.WriteHeader(http.StatusNoContent)
+
+	default:
+		w.Header().Set("Allow", "GET, PUT, DELETE")
+		writeError(w, http.StatusMethodNotAllowed, "Method not allowed")
+	}
 }
