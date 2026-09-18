@@ -23,6 +23,10 @@ func main() {
 		log.Fatal("DATABASE_URL must be set in .env")
 	}
 
+	if os.Getenv("JWT_SECRET") == "" {
+		log.Fatal("JWT_SECRET must be set in .env")
+	}
+
 	db, err := sql.Open("postgres", dbURL)
 	if err != nil {
 		log.Fatalf("Failed to initialize database connection: %v", err)

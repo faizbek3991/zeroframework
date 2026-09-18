@@ -1,10 +1,22 @@
+function escapeHtml(value) {
+  return String(value)
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
+}
+
 class MovieItem extends HTMLElement {
   connectedCallback() {
-    const title = this.getAttribute("title") || "Untitled";
-    const year = this.getAttribute("year") || "N/A";
-    const rating = this.getAttribute("rating") || "N/A";
-    const description = this.getAttribute("description") || "No description provided.";
-    const poster = this.getAttribute("poster") || "https://placehold.co/300x450?text=No+Poster";
+    const title = escapeHtml(this.getAttribute("title") || "Untitled");
+    const year = escapeHtml(this.getAttribute("year") || "N/A");
+    const rating = escapeHtml(this.getAttribute("rating") || "N/A");
+    const description = escapeHtml(this.getAttribute("description") || "No description provided.");
+    const rawPoster = this.getAttribute("poster") || "";
+    const poster = /^https?:\/\//i.test(rawPoster)
+      ? escapeHtml(rawPoster)
+      : "https://placehold.co/300x450?text=No+Poster";
 
     this.innerHTML = `
       <article class="movie-card">

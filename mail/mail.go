@@ -1,6 +1,7 @@
 package mail
 
 import (
+	"errors"
 	"fmt"
 	"net/smtp"
 	"os"
@@ -8,13 +9,19 @@ import (
 
 // SendPasswordResetEmail emails a password reset link to the given address.
 // SMTP settings are read from the environment (SMTP_HOST, SMTP_PORT, SMTP_USER,
-// SMTP_PASS, SMTP_FROM); if SMTP_HOST is unset, the email is skipped and the
-// link is logged instead so local development works without an SMTP server.
+// SMTP_PASS, SMTP_FROM). If SMTP_HOST is unset, delivery fails unless
+// DEV_LOG_RESET_LINKS=true is explicitly set, in which case the link is
+// printed to the console instead so local development works without a real
+// SMTP server. Never enable DEV_LOG_RESET_LINKS outside local development —
+// reset links grant account takeover and must not land in shared logs.
 func SendPasswordResetEmail(to, resetLink string) error {
 	host := os.Getenv("SMTP_HOST")
 	if host == "" {
-		fmt.Printf("[mail] SMTP_HOST not configured; password reset link for %s: %s\n", to, resetLink)
-		return nil
+		if os.Getenv("DEV_LOG_RESET_LINKS") == "true" {
+			fmt.Printf("[mail] SMTP_HOST not configured; password reset link for %s: %s\n", to, resetLink)
+			return nil
+		}
+		return errors.New("email delivery is not configured (set SMTP_HOST, or DEV_LOG_RESET_LINKS=true for local development)")
 	}
 
 	port := os.Getenv("SMTP_PORT")

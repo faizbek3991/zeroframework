@@ -1,6 +1,7 @@
 package token
 
 import (
+	"errors"
 	"os"
 	"time"
 
@@ -15,6 +16,9 @@ type Claims struct {
 
 func GenerateJWT(userID int, email string) (string, error) {
 	secret := []byte(os.Getenv("JWT_SECRET"))
+	if len(secret) == 0 {
+		return "", errors.New("JWT_SECRET is not set")
+	}
 	claims := Claims{
 		UserID: userID,
 		Email:  email,

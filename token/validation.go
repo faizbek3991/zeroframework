@@ -9,6 +9,9 @@ import (
 
 func ValidateJWT(tokenString string) (*Claims, error) {
 	secret := []byte(os.Getenv("JWT_SECRET"))
+	if len(secret) == 0 {
+		return nil, errors.New("JWT_SECRET is not set")
+	}
 
 	parsedToken, err := jwt.ParseWithClaims(tokenString, &Claims{}, func(t *jwt.Token) (any, error) {
 		if _, ok := t.Method.(*jwt.SigningMethodHMAC); !ok {

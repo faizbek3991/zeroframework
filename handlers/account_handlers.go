@@ -164,9 +164,13 @@ func (h *AccountHandler) ForgotPassword(w http.ResponseWriter, r *http.Request) 
 	}
 	resetLink := baseURL + "/reset-password?token=" + resetToken
 
-	if err := mail.SendPasswordResetEmail(user.Email, resetLink); err != nil {
-		log.Printf("Failed to send password reset email to %s: %v", user.Email, err)
-	}
+	// Send asynchronously so the response time doesn't reveal whether the
+	// email was registered (SMTP round-trip would otherwise leak that via timing).
+	go func() {
+		if err := mail.SendPasswordResetEmail(user.Email, resetLink); err != nil {
+			log.Printf("Failed to send password reset email to %s: %v", user.Email, err)
+		}
+	}()
 
 	writeJSON(w, http.StatusOK, map[string]string{"message": genericMessage})
 }
