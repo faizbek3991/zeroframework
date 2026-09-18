@@ -16,7 +16,7 @@ class AdminPage extends HTMLElement {
   constructor() {
     super();
     this.activeTab = "movies";
-    this.movies = [];
+    this.movies = null;
     this.movieSearch = "";
     this.editingMovieId = null;
     this.movieForm = { ...EMPTY_MOVIE_FORM };
@@ -34,6 +34,7 @@ class AdminPage extends HTMLElement {
       return;
     }
     this.render();
+    this.loadMovies();
     this.loadUsers();
   }
 
@@ -116,19 +117,27 @@ class AdminPage extends HTMLElement {
   }
 
   renderMoviesList() {
-    if (!this.movieSearch) {
-      return `<p class="admin-hint">Type a title above to search the catalog and manage a movie.</p>`;
+    if (this.movies === null) {
+      return `<p class="admin-hint">Loading movies...</p>`;
     }
     if (this.movies.length === 0) {
       return `<p class="empty-state">No movies found.</p>`;
     }
+
+    const showingAll = Boolean(this.movieSearch);
+    const visible = showingAll ? this.movies : this.movies.slice(0, 50);
+    const hint = showingAll
+      ? ""
+      : `<p class="admin-hint">Showing ${visible.length} of ${this.movies.length} movies. Search above to find a specific one.</p>`;
+
     return `
+      ${hint}
       <table class="admin-table">
         <thead>
           <tr><th>Title</th><th>Year</th><th>Rating</th><th></th></tr>
         </thead>
         <tbody>
-          ${this.movies
+          ${visible
             .map(
               (m) => `
             <tr>
@@ -246,19 +255,16 @@ class AdminPage extends HTMLElement {
   }
 
   async loadMovies() {
-    if (!this.movieSearch) {
-      this.movies = [];
-      this.querySelector("#movies-list").innerHTML = this.renderMoviesList();
-      this.bindMoviesEvents();
-      return;
-    }
     try {
       this.movies = await API.getMovies(this.movieSearch);
     } catch (err) {
+      this.movies = [];
       this.showMovieMessage(err.message || "Failed to load movies.", "error");
       return;
     }
-    this.querySelector("#movies-list").innerHTML = this.renderMoviesList();
+    const list = this.querySelector("#movies-list");
+    if (!list) return;
+    list.innerHTML = this.renderMoviesList();
     this.querySelectorAll("[data-edit]").forEach((btn) => {
       btn.addEventListener("click", () => this.startEditMovie(Number(btn.dataset.edit)));
     });
@@ -298,21 +304,25 @@ class AdminPage extends HTMLElement {
       poster_url: posterURL || null
     };
 
+    let successText;
     try {
       if (this.editingMovieId) {
         await API.updateMovie(this.editingMovieId, payload);
-        this.showMovieMessage("Movie updated successfully.", "success");
+        successText = "Movie updated successfully.";
       } else {
         await API.createMovie(payload);
-        this.showMovieMessage("Movie created successfully.", "success");
+        successText = "Movie created successfully.";
       }
-      this.showMovieForm = false;
-      this.editingMovieId = null;
-      await this.loadMovies();
-      this.render();
     } catch (err) {
       this.showMovieMessage(err.message || "Failed to save movie.", "error");
+      return;
     }
+
+    this.showMovieForm = false;
+    this.editingMovieId = null;
+    await this.loadMovies();
+    this.render();
+    this.showMovieMessage(successText, "success");
   }
 
   async handleDeleteMovie(id) {
