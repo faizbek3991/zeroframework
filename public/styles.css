@@ -125,7 +125,6 @@ a {
 .movie-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
-  grid-auto-rows: 1fr;
   align-items: stretch;
   gap: 1.25rem;
 }
@@ -199,6 +198,11 @@ a {
   flex: 1;
   margin: 0;
   overflow-wrap: break-word;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 4;
+  line-clamp: 4;
+  overflow: hidden;
 }
 
 .movie-footer {
@@ -393,6 +397,12 @@ a {
 
   .movie-header h3 {
     font-size: 0.9rem;
+  }
+
+  .movie-desc {
+    -webkit-line-clamp: 3;
+    line-clamp: 3;
+    font-size: 0.8rem;
   }
 
   .auth-card {
