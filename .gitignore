@@ -28,6 +28,7 @@ vendor/
 *.db
 *.sqlite
 *.sqlite3
+import/database-dump.sql
 
 # Log files
 *.log
