@@ -4,7 +4,8 @@ import "./components/homepage.js";
 import "./components/login_page.js";
 import "./components/forgot_password_page.js";
 import "./components/reset_password_page.js";
-import "./components/admin_page.js";
+import "./components/admin_movies_page.js";
+import "./components/admin_users_page.js";
 
 function escapeHtml(value) {
   return String(value)

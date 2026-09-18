@@ -12,16 +12,14 @@ function escapeHtml(value) {
 
 const EMPTY_MOVIE_FORM = { title: "", description: "", release_year: "", rating: "", poster_url: "" };
 
-class AdminPage extends HTMLElement {
+class AdminMoviesPage extends HTMLElement {
   constructor() {
     super();
-    this.activeTab = "movies";
     this.movies = null;
     this.movieSearch = "";
     this.editingMovieId = null;
     this.movieForm = { ...EMPTY_MOVIE_FORM };
     this.showMovieForm = false;
-    this.users = [];
   }
 
   connectedCallback() {
@@ -35,50 +33,34 @@ class AdminPage extends HTMLElement {
     }
     this.render();
     this.loadMovies();
-    this.loadUsers();
   }
 
   render() {
     this.innerHTML = `
       <section class="admin-container">
         <div class="admin-tabs">
-          <button id="tab-movies" class="tab-btn ${this.activeTab === "movies" ? "active" : ""}">Movies</button>
-          <button id="tab-users" class="tab-btn ${this.activeTab === "users" ? "active" : ""}">Users</button>
+          <a href="/admin" data-link class="tab-btn active">Movies</a>
+          <a href="/admin/users" data-link class="tab-btn">Users</a>
         </div>
 
-        <div id="movies-panel" class="admin-panel ${this.activeTab === "movies" ? "" : "hidden"}">
-          ${this.renderMoviesPanel()}
-        </div>
+        <div class="admin-panel">
+          <div id="movie-message"></div>
 
-        <div id="users-panel" class="admin-panel ${this.activeTab === "users" ? "" : "hidden"}">
-          ${this.renderUsersPanel()}
+          <div class="admin-toolbar">
+            <input type="text" id="movie-search" placeholder="Search movies by title..." value="${escapeHtml(this.movieSearch)}" />
+            <button id="add-movie-btn" class="btn btn-primary">Add Movie</button>
+          </div>
+
+          ${this.showMovieForm ? this.renderMovieForm() : ""}
+
+          <div id="movies-list">
+            ${this.renderMoviesList()}
+          </div>
         </div>
       </section>
     `;
 
-    this.bindTabEvents();
-    if (this.activeTab === "movies") {
-      this.bindMoviesEvents();
-    } else {
-      this.bindUsersEvents();
-    }
-  }
-
-  renderMoviesPanel() {
-    return `
-      <div id="movie-message"></div>
-
-      <div class="admin-toolbar">
-        <input type="text" id="movie-search" placeholder="Search movies by title..." value="${escapeHtml(this.movieSearch)}" />
-        <button id="add-movie-btn" class="btn btn-primary">Add Movie</button>
-      </div>
-
-      ${this.showMovieForm ? this.renderMovieForm() : ""}
-
-      <div id="movies-list">
-        ${this.renderMoviesList()}
-      </div>
-    `;
+    this.bindEvents();
   }
 
   renderMovieForm() {
@@ -157,58 +139,7 @@ class AdminPage extends HTMLElement {
     `;
   }
 
-  renderUsersPanel() {
-    if (this.users.length === 0) {
-      return `<p class="admin-hint">Loading users...</p>`;
-    }
-    return `
-      <div id="user-message"></div>
-      <table class="admin-table">
-        <thead>
-          <tr><th>Name</th><th>Email</th><th>Role</th><th></th></tr>
-        </thead>
-        <tbody>
-          ${this.users
-            .map((u) => {
-              const isSelf = store.user && store.user.id === u.id;
-              return `
-              <tr>
-                <td>${escapeHtml(u.name)}</td>
-                <td>${escapeHtml(u.email)}</td>
-                <td><span class="role-badge role-${escapeHtml(u.role)}">${escapeHtml(u.role)}</span></td>
-                <td class="admin-actions">
-                  ${
-                    isSelf
-                      ? `<span class="admin-hint">(you)</span>`
-                      : `
-                    <button class="btn btn-outline btn-small" data-toggle-role="${u.id}" data-current-role="${escapeHtml(u.role)}">
-                      ${u.role === "admin" ? "Demote" : "Promote"}
-                    </button>
-                    <button class="btn btn-outline btn-small btn-danger" data-delete-user="${u.id}">Delete</button>
-                  `
-                  }
-                </td>
-              </tr>
-            `;
-            })
-            .join("")}
-        </tbody>
-      </table>
-    `;
-  }
-
-  bindTabEvents() {
-    this.querySelector("#tab-movies").addEventListener("click", () => {
-      this.activeTab = "movies";
-      this.render();
-    });
-    this.querySelector("#tab-users").addEventListener("click", () => {
-      this.activeTab = "users";
-      this.render();
-    });
-  }
-
-  bindMoviesEvents() {
+  bindEvents() {
     const searchInput = this.querySelector("#movie-search");
     let debounceTimer;
     searchInput.addEventListener("input", (e) => {
@@ -233,24 +164,15 @@ class AdminPage extends HTMLElement {
       });
     }
 
+    this.bindRowEvents();
+  }
+
+  bindRowEvents() {
     this.querySelectorAll("[data-edit]").forEach((btn) => {
       btn.addEventListener("click", () => this.startEditMovie(Number(btn.dataset.edit)));
     });
     this.querySelectorAll("[data-delete]").forEach((btn) => {
       btn.addEventListener("click", () => this.handleDeleteMovie(Number(btn.dataset.delete)));
-    });
-  }
-
-  bindUsersEvents() {
-    this.querySelectorAll("[data-toggle-role]").forEach((btn) => {
-      btn.addEventListener("click", () => {
-        const id = Number(btn.dataset.toggleRole);
-        const newRole = btn.dataset.currentRole === "admin" ? "user" : "admin";
-        this.handleRoleToggle(id, newRole);
-      });
-    });
-    this.querySelectorAll("[data-delete-user]").forEach((btn) => {
-      btn.addEventListener("click", () => this.handleDeleteUser(Number(btn.dataset.deleteUser)));
     });
   }
 
@@ -265,12 +187,7 @@ class AdminPage extends HTMLElement {
     const list = this.querySelector("#movies-list");
     if (!list) return;
     list.innerHTML = this.renderMoviesList();
-    this.querySelectorAll("[data-edit]").forEach((btn) => {
-      btn.addEventListener("click", () => this.startEditMovie(Number(btn.dataset.edit)));
-    });
-    this.querySelectorAll("[data-delete]").forEach((btn) => {
-      btn.addEventListener("click", () => this.handleDeleteMovie(Number(btn.dataset.delete)));
-    });
+    this.bindRowEvents();
   }
 
   startEditMovie(id) {
@@ -341,49 +258,6 @@ class AdminPage extends HTMLElement {
     if (!box) return;
     box.innerHTML = `<div class="${type === "error" ? "auth-error" : "auth-success"}">${escapeHtml(text)}</div>`;
   }
-
-  async loadUsers() {
-    try {
-      this.users = await API.getUsers();
-    } catch (err) {
-      this.users = [];
-      this.querySelector("#users-panel").innerHTML = `<div class="auth-error">${escapeHtml(
-        err.message || "Failed to load users."
-      )}</div>`;
-      return;
-    }
-    if (this.activeTab === "users") {
-      this.querySelector("#users-panel").innerHTML = this.renderUsersPanel();
-      this.bindUsersEvents();
-    }
-  }
-
-  async handleRoleToggle(id, newRole) {
-    try {
-      await API.updateUserRole(id, newRole);
-      await this.loadUsers();
-      this.showUserMessage(`Role updated to ${newRole}.`, "success");
-    } catch (err) {
-      this.showUserMessage(err.message || "Failed to update role.", "error");
-    }
-  }
-
-  async handleDeleteUser(id) {
-    if (!confirm("Delete this user account? This cannot be undone.")) return;
-    try {
-      await API.deleteUser(id);
-      await this.loadUsers();
-      this.showUserMessage("User deleted.", "success");
-    } catch (err) {
-      this.showUserMessage(err.message || "Failed to delete user.", "error");
-    }
-  }
-
-  showUserMessage(text, type) {
-    const box = this.querySelector("#user-message");
-    if (!box) return;
-    box.innerHTML = `<div class="${type === "error" ? "auth-error" : "auth-success"}">${escapeHtml(text)}</div>`;
-  }
 }
 
-customElements.define("admin-page", AdminPage);
+customElements.define("admin-movies-page", AdminMoviesPage);
